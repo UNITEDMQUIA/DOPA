@@ -1,0 +1,32 @@
+services:
+  dopa-frontend:
+    container_name: dopa-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${DOPA_PORT:-8080}:80"
+    restart: unless-stopped
+    networks:
+      - dopa-network
+
+  # ===========================================================================
+  # PLACEHOLDER ARQUITECTÓNICO: Backend Python FastAPI + Agente IA
+  # Descomentar cuando se agregue la carpeta ./backend con su Dockerfile
+  # ===========================================================================
+  # dopa-backend:
+  #   container_name: dopa-backend
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - ENV=development
+  #   restart: unless-stopped
+  #   networks:
+  #     - dopa-network
+
+networks:
+  dopa-network:
+    driver: bridge
