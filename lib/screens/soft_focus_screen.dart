@@ -11,15 +11,17 @@ import 'session_success_screen.dart';
 /// Pantalla 3: Enfoque suave (Temporizador Pomodoro y Micro-pasos).
 ///
 /// Principio UX: Reducción drástica del estrés ejecutivo.
-/// Desglosa la tarea en pasos atómicos de 1-2 minutos y utiliza un temporizador
-/// amigable sin cuenta regresiva agresiva.
+/// Conectada con `/api/v1/tasks/{id}/subtasks`, `/api/v1/tasks/{id}/complete`
+/// y `/api/v1/pomodoro/sessions`.
 class SoftFocusScreen extends StatefulWidget {
+  final int? taskId;
   final String taskTitle;
   final List<MicroPaso> microSteps;
   final int durationMinutes;
 
   const SoftFocusScreen({
     super.key,
+    this.taskId,
     this.taskTitle = 'Hacer la cama',
     this.microSteps = const [],
     this.durationMinutes = 5,
@@ -41,8 +43,12 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
   void initState() {
     super.initState();
     _remainingSeconds = widget.durationMinutes * 60;
-    _step1Done = true; // Simulado según diseño
-    _step2Done = false;
+    _step1Done = widget.microSteps.isNotEmpty
+        ? widget.microSteps.first.completado
+        : true;
+    _step2Done = widget.microSteps.length > 1
+        ? widget.microSteps[1].completado
+        : false;
   }
 
   @override
@@ -69,17 +75,43 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
     }
   }
 
+  void _toggleMicroStep(int stepIndex, bool newValue) {
+    final tareaId = widget.taskId ?? 1;
+    final stepId = widget.microSteps.length > stepIndex
+        ? (widget.microSteps[stepIndex].id ?? (stepIndex + 1))
+        : (stepIndex + 1);
+    DBService.instance.actualizarMicroPaso(
+      tareaId: tareaId,
+      microPasoId: stepId,
+      completado: newValue,
+    );
+  }
+
   void _completarSesion() async {
-    // [INYECCIÓN SQLITE]:
-    // 1. Guardar la sesión de enfoque completada
+    final tareaId = widget.taskId ?? 1;
+
+    // 1. Marcar tarea como completada en el backend (`/api/v1/tasks/{id}/complete`)
+    await DBService.instance.actualizarTarea(
+      TareaBloque(
+        id: tareaId,
+        titulo: widget.taskTitle,
+        subtitulo: '¡Hecho! · +10 dopamina',
+        duracionMinutos: widget.durationMinutes,
+        estado: EstadoTarea.hecho,
+        puntosDopamina: 10,
+      ),
+    );
+
+    // 2. Guardar la sesión de enfoque completada (`/api/v1/pomodoro/sessions`)
     await DBService.instance.registrarSesion(
       SesionEnfoque(
+        tareaId: tareaId,
         duracionSegundos: widget.durationMinutes * 60,
         completada: true,
       ),
     );
 
-    // 2. Otorgar recompensa de dopamina
+    // 3. Otorgar recompensa de dopamina (`/api/v1/gamification/rewards`)
     await DBService.instance.agregarRecompensa(
       Recompensa(
         titulo: widget.taskTitle,
@@ -87,6 +119,8 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
         tipo: 'tarea',
       ),
     );
+
+    final totalHoy = await DBService.instance.obtenerTotalDopaminaHoy();
 
     if (!mounted) return;
 
@@ -96,7 +130,7 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
         builder: (context) => SessionSuccessScreen(
           taskTitle: widget.taskTitle,
           dopamineGained: 10,
-          totalDopamineToday: 32,
+          totalDopamineToday: totalHoy,
         ),
       ),
     );
@@ -123,36 +157,42 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.maybePop(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppTheme.borderDark,
-                              width: AppTheme.borderWidth,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.maybePop(context),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppTheme.borderDark,
+                                width: AppTheme.borderWidth,
+                              ),
                             ),
-                          ),
-                          child: const Icon(
-                            Icons.chevron_left_rounded,
-                            color: AppTheme.borderDark,
-                            size: 26,
+                            child: const Icon(
+                              Icons.chevron_left_rounded,
+                              color: AppTheme.borderDark,
+                              size: 26,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Enfoque suave',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            'Enfoque suave',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => Navigator.maybePop(context),
                     child: Text(
@@ -230,9 +270,11 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
                 backgroundColor: AppTheme.surfaceWhite,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 onTap: () {
+                  final next = !_step1Done;
                   setState(() {
-                    _step1Done = !_step1Done;
+                    _step1Done = next;
                   });
+                  _toggleMicroStep(0, next);
                 },
                 child: Row(
                   children: [
@@ -278,9 +320,11 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
                 backgroundColor: AppTheme.pastelYellow,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 onTap: () {
+                  final next = !_step2Done;
                   setState(() {
-                    _step2Done = !_step2Done;
+                    _step2Done = next;
                   });
+                  _toggleMicroStep(1, next);
                 },
                 child: Row(
                   children: [
@@ -342,33 +386,36 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
                           ),
                         ),
                         const SizedBox(width: 18),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Enfoque',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                            ),
-                            Text(
-                              _formatTime(_remainingSeconds),
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                    fontSize: 34,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.0,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                            ),
-                            Text(
-                              'minutos · sin notificaciones',
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: AppTheme.textMuted,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ],
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Enfoque',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                              ),
+                              Text(
+                                _formatTime(_remainingSeconds),
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.0,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                              ),
+                              Text(
+                                'minutos · sin notificaciones',
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: AppTheme.textMuted,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -377,7 +424,7 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
                     // Botón Rosa: Iniciar / Pausar
                     DopaCard(
                       backgroundColor: AppTheme.pastelPink,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                       borderRadius: AppTheme.radiusLarge,
                       onTap: _toggleTimer,
                       child: Row(
@@ -389,12 +436,15 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
                             size: 22,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            _isRunning ? 'Pausar temporizador' : 'Iniciar temporizador',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.textPrimary,
-                                ),
+                          Flexible(
+                            child: Text(
+                              _isRunning ? 'Pausar temporizador' : 'Iniciar temporizador',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                            ),
                           ),
                         ],
                       ),
@@ -415,24 +465,34 @@ class _SoftFocusScreenState extends State<SoftFocusScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          '¡Conseguido!',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Text('✨', style: TextStyle(fontSize: 18)),
-                      ],
-                    ),
-                    Text(
-                      '(+10 dopamina)',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.textPrimary,
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '¡Conseguido!',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
                           ),
+                          const SizedBox(width: 6),
+                          const Text('✨', style: TextStyle(fontSize: 18)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '(+10 dopamina)',
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textPrimary,
+                            ),
+                      ),
                     ),
                   ],
                 ),

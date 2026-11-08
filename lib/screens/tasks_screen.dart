@@ -10,8 +10,7 @@ import 'soft_focus_screen.dart';
 /// Pantalla 2: Mis tareas ("Poquito a poquito").
 ///
 /// Principio UX: Priorización suave y no intrusiva.
-/// El usuario selecciona sólo una tarea para empezar, eliminando la sensación
-/// de montaña de pendientes. El Agente de IA sugiere el orden de menor fricción.
+/// Conectada con `/api/v1/tasks` y `/api/v1/tasks/{task_id}/complete`.
 class TasksScreen extends StatefulWidget {
   final VoidCallback? onBack;
 
@@ -22,7 +21,6 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  // [MOCK DATA]: Inicialmente vacío mientras resuelve DBService.obtenerTareas()
   List<TareaBloque> _tareas = [];
   int _selectedTaskId = 1;
 
@@ -33,8 +31,6 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _cargarTareas() async {
-    // [INYECCIÓN SQLITE]:
-    // Reemplazar con consulta real en DBService.instance.obtenerTareas()
     final tareasDB = await DBService.instance.obtenerTareas();
     if (!mounted) return;
     setState(() {
@@ -54,6 +50,7 @@ class _TasksScreenState extends State<TasksScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => SoftFocusScreen(
+          taskId: tareaActual.id,
           taskTitle: tareaActual.titulo,
           microSteps: tareaActual.microPasos,
           durationMinutes: tareaActual.duracionMinutos,
@@ -138,26 +135,31 @@ class _TasksScreenState extends State<TasksScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Poquito a poquito',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.textPrimary,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Elige solo una para empezar',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Poquito a poquito',
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Elige solo una para empezar',
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   // Contador circular 1/4
                   Container(
                     width: 52,
@@ -214,23 +216,24 @@ class _TasksScreenState extends State<TasksScreen> {
                       });
                     },
                     onToggle: (nuevoValor) {
-                      // [INYECCIÓN SQLITE]:
-                      // Actualizar estado en base de datos local via DBService.instance.actualizarTarea(...)
+                      final tareaActualizada = TareaBloque(
+                        id: tarea.id,
+                        titulo: tarea.titulo,
+                        subtitulo: nuevoValor == true
+                            ? '¡Hecho! · +${tarea.puntosDopamina} dopamina'
+                            : tarea.subtitulo,
+                        duracionMinutos: tarea.duracionMinutos,
+                        estado: nuevoValor == true
+                            ? EstadoTarea.hecho
+                            : EstadoTarea.despues,
+                        puntosDopamina: tarea.puntosDopamina,
+                        microPasos: tarea.microPasos,
+                        prioridad: tarea.prioridad,
+                      );
                       setState(() {
-                        _tareas[index] = TareaBloque(
-                          id: tarea.id,
-                          titulo: tarea.titulo,
-                          subtitulo: nuevoValor == true
-                              ? '¡Hecho! · +${tarea.puntosDopamina} dopamina'
-                              : tarea.subtitulo,
-                          duracionMinutos: tarea.duracionMinutos,
-                          estado: nuevoValor == true
-                              ? EstadoTarea.hecho
-                              : EstadoTarea.despues,
-                          puntosDopamina: tarea.puntosDopamina,
-                          microPasos: tarea.microPasos,
-                        );
+                        _tareas[index] = tareaActualizada;
                       });
+                      DBService.instance.actualizarTarea(tareaActualizada);
                     },
                   );
                 },

@@ -7,10 +7,6 @@ import '../models/wellness_record_model.dart';
 import '../services/db_service.dart';
 
 /// Pantalla 5: Mi Dopamina hoy (Gamificación libre de culpa y Diario de Bienestar).
-///
-/// Principio UX: Gamificación amable.
-/// Muestra métricas de satisfacción y bienestar sin castigar rachas rotas
-/// ni generar ansiedad por metas inalcanzables.
 class DopamineStatsScreen extends StatefulWidget {
   final VoidCallback? onBack;
 
@@ -33,8 +29,6 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
   }
 
   void _cargarDatosGamificacion() async {
-    // [INYECCIÓN SQLITE]:
-    // Carga los puntos de dopamina reunidos hoy desde la base de datos
     final total = await DBService.instance.obtenerTotalDopaminaHoy();
     if (!mounted) return;
     setState(() {
@@ -54,42 +48,46 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // -------------------------------------------------------------
               // ENCABEZADO: Volver, Título y logo dopa
-              // -------------------------------------------------------------
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: widget.onBack ?? () => Navigator.maybePop(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppTheme.borderDark,
-                              width: AppTheme.borderWidth,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: widget.onBack ?? () => Navigator.maybePop(context),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppTheme.borderDark,
+                                width: AppTheme.borderWidth,
+                              ),
                             ),
-                          ),
-                          child: const Icon(
-                            Icons.chevron_left_rounded,
-                            color: AppTheme.borderDark,
-                            size: 26,
+                            child: const Icon(
+                              Icons.chevron_left_rounded,
+                              color: AppTheme.borderDark,
+                              size: 26,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Mi Dopamina hoy',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            'Mi Dopamina hoy',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -114,9 +112,7 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
               ),
               const SizedBox(height: 18),
 
-              // -------------------------------------------------------------
               // SELECTOR DE PERIODO: [ Día | Semana | Mes ]
-              // -------------------------------------------------------------
               Container(
                 height: 42,
                 decoration: BoxDecoration(
@@ -134,36 +130,39 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // -------------------------------------------------------------
               // SELECTOR DE FECHA CON NAVEGACIÓN
-              // -------------------------------------------------------------
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildNavArrow(Icons.chevron_left_rounded, () {}),
                   const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.pastelYellow,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppTheme.borderDark,
-                        width: AppTheme.borderWidth,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.borderDark),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Jue, 1 de octubre',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.pastelYellow,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppTheme.borderDark,
+                          width: AppTheme.borderWidth,
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.borderDark),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Jue, 1 de octubre',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -172,9 +171,7 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
               ),
               const SizedBox(height: 20),
 
-              // -------------------------------------------------------------
-              // TARJETA PRINCIPAL: DOPAMINA REUNIDA (Verde Menta Pastel)
-              // -------------------------------------------------------------
+              // TARJETA PRINCIPAL: DOPAMINA REUNIDA
               DopaCard(
                 backgroundColor: AppTheme.pastelMint,
                 padding: const EdgeInsets.all(20.0),
@@ -186,28 +183,31 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Dopamina reunida',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$_dopaminaHoy pts',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                    fontSize: 34,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.5,
-                                  ),
-                            ),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Dopamina reunida',
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$_dopaminaHoy pts',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.5,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
-                        // Círculo de porcentaje de la meta
+                        const SizedBox(width: 8),
                         Container(
                           width: 72,
                           height: 72,
@@ -245,8 +245,6 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-
-                    // Barra de progreso de la meta
                     Container(
                       height: 14,
                       decoration: BoxDecoration(
@@ -273,9 +271,7 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
               ),
               const SizedBox(height: 24),
 
-              // -------------------------------------------------------------
-              // SECCIÓN: DIARIO DE BIENESTAR ("Mi humor")
-              // -------------------------------------------------------------
+              // DIARIO DE BIENESTAR ("Mi humor")
               Text(
                 'Mi humor',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -293,9 +289,7 @@ class _DopamineStatsScreenState extends State<DopamineStatsScreen> {
               ),
               const SizedBox(height: 24),
 
-              // -------------------------------------------------------------
-              // SECCIÓN: MOTOR DE GAMIFICACIÓN ("Rachas")
-              // -------------------------------------------------------------
+              // MOTOR DE GAMIFICACIÓN ("Rachas")
               const StreakChart(streakDays: 4),
               const SizedBox(height: 16),
             ],

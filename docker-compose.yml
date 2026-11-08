@@ -1,32 +1,99 @@
+# =============================================================================
+# DOCKER COMPOSE UNIFICADO — PROYECTO DOPA (DB + Backend FastAPI + Frontend)
+# Agente Responsable: Agent_DevOps (Orquestación de Contenedores)
+# =============================================================================
+
 services:
-  dopa-frontend:
-    container_name: dopa-frontend
+  # ---------------------------------------------------------------------------
+  # 1. Base de Datos Relacional: PostgreSQL 16 (con init.sql y seeders)
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: dopa_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dopa_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dopa_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-dopa_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dopa_user} -d ${POSTGRES_DB:-dopa_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dopa_network
+
+  # ---------------------------------------------------------------------------
+  # 2. Administrador Visual de Base de Datos: pgAdmin 4
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dopa_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@dopa.app}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin123}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dopa_network
+
+  # ---------------------------------------------------------------------------
+  # 3. Backend RESTful en 5 Capas: Python 3.12 + FastAPI + SQLAlchemy
+  # ---------------------------------------------------------------------------
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
+      target: backend
+    container_name: dopa_fastapi_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dopa_user}:${POSTGRES_PASSWORD:-dopa_pass}@db:5432/${POSTGRES_DB:-dopa_db}
+      DOPA_JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dopa-super-secret-jwt-key-tdah-2026}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dopa-super-secret-jwt-key-tdah-2026}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dopa_network
+
+  # ---------------------------------------------------------------------------
+  # 4. Frontend Flutter Web + Nginx Reverse Proxy hacia FastAPI
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+      args:
+        API_BASE_URL: ${API_BASE_URL:-/api/v1}
+    container_name: dopa_flutter_frontend
+    restart: unless-stopped
     ports:
       - "${DOPA_PORT:-8080}:80"
-    restart: unless-stopped
+    depends_on:
+      - backend
     networks:
-      - dopa-network
+      - dopa_network
 
-  # ===========================================================================
-  # PLACEHOLDER ARQUITECTÓNICO: Backend Python FastAPI + Agente IA
-  # Descomentar cuando se agregue la carpeta ./backend con su Dockerfile
-  # ===========================================================================
-  # dopa-backend:
-  #   container_name: dopa-backend
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - ENV=development
-  #   restart: unless-stopped
-  #   networks:
-  #     - dopa-network
+volumes:
+  postgres_data:
+    driver: local
 
 networks:
-  dopa-network:
+  dopa_network:
     driver: bridge

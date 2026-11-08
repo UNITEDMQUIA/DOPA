@@ -14,12 +14,11 @@ class StreakChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Días de la semana con alturas relativas y estado completado
     final List<Map<String, dynamic>> days = [
       {'day': 'L', 'height': 38.0, 'active': true},
       {'day': 'M', 'height': 50.0, 'active': true},
       {'day': 'X', 'height': 58.0, 'active': true},
-      {'day': 'J', 'height': 45.0, 'active': true}, // Hoy (activo)
+      {'day': 'J', 'height': 45.0, 'active': true},
       {'day': 'V', 'height': 60.0, 'active': false},
       {'day': 'S', 'height': 28.0, 'active': false},
       {'day': 'D', 'height': 42.0, 'active': false},
@@ -31,15 +30,17 @@ class StreakChart extends StatelessWidget {
       borderRadius: AppTheme.radiusLarge,
       child: Column(
         children: [
-          // Encabezado con título y badge de racha
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Rachas',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+              Expanded(
+                child: Text(
+                  'Rachas',
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -72,7 +73,7 @@ class StreakChart extends StatelessWidget {
 
           // Barras semanales
           SizedBox(
-            height: 80,
+            height: 92,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,

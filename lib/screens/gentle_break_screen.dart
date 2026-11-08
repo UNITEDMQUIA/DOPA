@@ -6,9 +6,6 @@ import '../services/db_service.dart';
 import '../models/reward_model.dart';
 
 /// Pantalla 6: Un break suave (Pausa y Actividades de Bajo Estímulo).
-///
-/// Principio UX: Reducción sensorial activa.
-/// Ofrece pausas sin exigencia donde el descanso es valorado como un logro.
 class GentleBreakScreen extends StatefulWidget {
   final VoidCallback? onBack;
   final VoidCallback? onGoHome;
@@ -69,8 +66,6 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
   }
 
   void _registrarPausaCompletada() async {
-    // [INYECCIÓN SQLITE]:
-    // Guarda los puntos de dopamina obtenidos por cuidar la energía
     await DBService.instance.agregarRecompensa(
       Recompensa(
         titulo: 'Pausa completada',
@@ -102,42 +97,46 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // -------------------------------------------------------------
               // ENCABEZADO: Volver, Título y Omitir
-              // -------------------------------------------------------------
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: widget.onBack ?? () => Navigator.maybePop(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppTheme.borderDark,
-                              width: AppTheme.borderWidth,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: widget.onBack ?? () => Navigator.maybePop(context),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppTheme.borderDark,
+                                width: AppTheme.borderWidth,
+                              ),
                             ),
-                          ),
-                          child: const Icon(
-                            Icons.chevron_left_rounded,
-                            color: AppTheme.borderDark,
-                            size: 26,
+                            child: const Icon(
+                              Icons.chevron_left_rounded,
+                              color: AppTheme.borderDark,
+                              size: 26,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Un break suave',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            'Un break suave',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: widget.onGoHome ?? () => Navigator.maybePop(context),
                     child: Text(
@@ -152,16 +151,17 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 18),
 
-              // -------------------------------------------------------------
               // TÍTULO Y SUBTÍTULO CALMADO
-              // -------------------------------------------------------------
               Row(
                 children: [
-                  Text(
-                    'Bajemos el volumen',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                  Flexible(
+                    child: Text(
+                      'Bajemos el volumen',
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   const Text('☁️', style: TextStyle(fontSize: 24)),
@@ -178,9 +178,7 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 18),
 
-              // -------------------------------------------------------------
               // SELECTOR DE DURACIÓN RÁPIDA: [ 5 minutos | 10 minutos ]
-              // -------------------------------------------------------------
               Row(
                 children: [
                   Expanded(
@@ -194,16 +192,13 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 20),
 
-              // -------------------------------------------------------------
-              // TARJETA DE TEMPORIZADOR DE DESCANSO (Lila Pastel)
-              // -------------------------------------------------------------
+              // TARJETA DE TEMPORIZADOR DE DESCANSO
               DopaCard(
                 backgroundColor: AppTheme.pastelLilac,
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 22.0),
                 borderRadius: AppTheme.radiusLarge,
                 child: Column(
                   children: [
-                    // Círculo blanco con nube
                     Container(
                       width: 58,
                       height: 58,
@@ -224,8 +219,6 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // Contador 05:00
                     Text(
                       _formatTime(_remainingSeconds),
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -242,8 +235,6 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
                           ),
                     ),
                     const SizedBox(height: 18),
-
-                    // Botón Amarillo: Empezar descanso
                     DopaCard(
                       backgroundColor: AppTheme.pastelYellow,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -258,12 +249,15 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
                             size: 24,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            _isRunning ? 'Pausar descanso' : 'Empezar descanso',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.textPrimary,
-                                ),
+                          Flexible(
+                            child: Text(
+                              _isRunning ? 'Pausar descanso' : 'Empezar descanso',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                            ),
                           ),
                         ],
                       ),
@@ -273,9 +267,7 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 22),
 
-              // -------------------------------------------------------------
-              // SECCIÓN: ACTIVIDADES DE BAJO ESTÍMULO
-              // -------------------------------------------------------------
+              // ACTIVIDADES DE BAJO ESTÍMULO
               Text(
                 'Actividades de bajo estímulo',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -284,7 +276,6 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Actividad 1: Respiración 4-4 (Verde Menta Pastel)
               _buildLowStimulusCard(
                 icon: Icons.air_rounded,
                 title: 'Respiración 4–4',
@@ -294,7 +285,6 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Actividad 2: Estiramiento suave (Naranja/Durazno Pastel)
               _buildLowStimulusCard(
                 icon: Icons.accessibility_new_rounded,
                 title: 'Estiramiento suave',
@@ -304,7 +294,6 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Actividad 3: Pausa completada (Amarillo / Lima)
               DopaCard(
                 backgroundColor: AppTheme.pastelLime,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -330,11 +319,14 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                'Pausa completada',
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                              Flexible(
+                                child: Text(
+                                  'Pausa completada',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
                               ),
                               const SizedBox(width: 4),
                               const Text('✨', style: TextStyle(fontSize: 14)),
@@ -357,9 +349,7 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ),
               const SizedBox(height: 18),
 
-              // -------------------------------------------------------------
-              // BOTÓN: Volver al inicio (Celeste Pastel)
-              // -------------------------------------------------------------
+              // BOTÓN: Volver al inicio
               DopaCard(
                 backgroundColor: AppTheme.pastelBlue,
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -369,11 +359,14 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
                   children: [
                     const Icon(Icons.home_outlined, color: AppTheme.borderDark, size: 22),
                     const SizedBox(width: 8),
-                    Text(
-                      'Volver al inicio',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                    Flexible(
+                      child: Text(
+                        'Volver al inicio',
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
                     ),
                   ],
                 ),
@@ -426,6 +419,7 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               children: [
                 Text(
                   title,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -433,6 +427,7 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppTheme.textSecondary,
                         fontWeight: FontWeight.w600,
@@ -442,6 +437,7 @@ class _GentleBreakScreenState extends State<GentleBreakScreen> {
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             duration,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(

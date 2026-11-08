@@ -38,13 +38,8 @@ class _MoodSelectorState extends State<MoodSelector> {
       widget.onMoodChanged!(humor);
     }
 
-    // [INYECCIÓN DE DATOS - SQLite]:
-    // Guarda el registro diario en la base de datos local
     final registro = RegistroBienestar(humor: humor);
     DBService.instance.guardarRegistroBienestar(registro);
-
-    // [INYECCIÓN FASTAPI]:
-    // Envía el evento al Agente de IA para adaptar los tiempos sugeridos
     ApiService.instance.sendWellnessAnalysis(registro);
   }
 
@@ -81,37 +76,40 @@ class _MoodSelectorState extends State<MoodSelector> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: items.map((item) {
         final isSelected = item.humor == _currentMood;
-        return GestureDetector(
-          onTap: () => _handleMoodSelect(item.humor),
-          child: Column(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: item.bgColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppTheme.borderDark,
-                    width: isSelected ? 2.8 : AppTheme.borderWidth,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    item.emoji,
-                    style: const TextStyle(fontSize: 26),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                item.label,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: AppTheme.textPrimary,
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => _handleMoodSelect(item.humor),
+            child: Column(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: item.bgColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppTheme.borderDark,
+                      width: isSelected ? 2.8 : AppTheme.borderWidth,
                     ),
-              ),
-            ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      item.emoji,
+                      style: const TextStyle(fontSize: 26),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                ),
+              ],
+            ),
           ),
         );
       }).toList(),

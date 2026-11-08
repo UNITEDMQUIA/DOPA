@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dopa_card.dart';
 import '../widgets/energy_bar.dart';
+import '../services/db_service.dart';
+import '../services/api_service.dart';
+import '../models/task_model.dart';
 import 'soft_focus_screen.dart';
 
 /// Pantalla 1: Inicio (Dashboard de Cero Fricción Cognitiva).
 ///
 /// Principio UX: "Single Source of Truth".
-/// El usuario no debe pensar qué hacer; la app le muestra su estado actual,
-/// dos decisiones binarias sencillas (Hacer algo fácil vs. Tomar un break)
-/// y únicamente la siguiente micro-tarea inmediata.
-class HomeDashboardScreen extends StatelessWidget {
+/// Conectada con `/api/v1/dashboard`, `/api/v1/dashboard/energy-checkin` y `/api/v1/dashboard/quick-task`.
+class HomeDashboardScreen extends StatefulWidget {
   final VoidCallback onNavigateToTasks;
   final VoidCallback onNavigateToBreak;
 
@@ -19,6 +20,60 @@ class HomeDashboardScreen extends StatelessWidget {
     required this.onNavigateToTasks,
     required this.onNavigateToBreak,
   });
+
+  @override
+  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+}
+
+class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+  String _saludo = '¡Hola, Fred!';
+  String _subtitulo = 'Vamos un paso a la vez';
+  double _energyLevel = 0.45;
+  int _pendientesCount = 2;
+  String _quickTaskTitle = 'Poner un vaso de agua cerca';
+  int? _quickTaskId = 2;
+  List<MicroPaso> _quickTaskSteps = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _sincronizarDashboard();
+  }
+
+  Future<void> _sincronizarDashboard() async {
+    try {
+      final dashboard = await ApiService.instance.getDashboard();
+      if (!mounted) return;
+      setState(() {
+        if (dashboard['saludo'] is String) {
+          _saludo = dashboard['saludo'] as String;
+        }
+        if (dashboard['subtitulo_amigable'] is String) {
+          _subtitulo = dashboard['subtitulo_amigable'] as String;
+        }
+        final resumen = dashboard['resumen_tareas'] as Map<String, dynamic>?;
+        if (resumen != null && resumen['pendientes'] is int) {
+          _pendientesCount = resumen['pendientes'] as int;
+        }
+        final microTareas = dashboard['micro_tareas_hoy'] as List<dynamic>?;
+        if (microTareas != null && microTareas.isNotEmpty) {
+          final first = microTareas.first;
+          if (first is Map<String, dynamic>) {
+            final mapped = TareaBloque.fromBackendJson(first, isFirstPending: true);
+            _quickTaskTitle = mapped.titulo;
+            _quickTaskId = mapped.id;
+            _quickTaskSteps = mapped.microPasos;
+          }
+        }
+      });
+    } catch (_) {
+      final usuario = await DBService.instance.getUsuario();
+      if (!mounted) return;
+      setState(() {
+        _energyLevel = usuario.energiaNivel;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,17 +90,22 @@ class HomeDashboardScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        '¡Hola, Fred!',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text('✨', style: TextStyle(fontSize: 22)),
-                    ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _saludo,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text('✨', style: TextStyle(fontSize: 22)),
+                      ],
+                    ),
                   ),
                   // Logo / Tag "• dopa"
                   Container(
@@ -76,7 +136,7 @@ class HomeDashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Vamos un paso a la vez',
+                _subtitulo,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppTheme.textSecondary,
                       fontWeight: FontWeight.w600,
@@ -88,9 +148,8 @@ class HomeDashboardScreen extends StatelessWidget {
               // -------------------------------------------------------------
               // 1. MEDIDOR DE ENERGÍA Y DOPAMINA (Card Rosa Pastel)
               // -------------------------------------------------------------
-              // [INYECCIÓN SQLITE]: Cargar nivel de energía con DBService.instance.getUsuario()
-              const EnergyDopamineCard(
-                energyLevel: 0.45,
+              EnergyDopamineCard(
+                energyLevel: _energyLevel,
                 emoji: '😌',
               ),
               const SizedBox(height: 18),
@@ -105,7 +164,7 @@ class HomeDashboardScreen extends StatelessWidget {
                     child: DopaCard(
                       backgroundColor: AppTheme.pastelPink,
                       padding: const EdgeInsets.symmetric(vertical: 22.0, horizontal: 12.0),
-                      onTap: onNavigateToTasks,
+                      onTap: widget.onNavigateToTasks,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -131,7 +190,7 @@ class HomeDashboardScreen extends StatelessWidget {
                     child: DopaCard(
                       backgroundColor: AppTheme.pastelBlue,
                       padding: const EdgeInsets.symmetric(vertical: 22.0, horizontal: 12.0),
-                      onTap: onNavigateToBreak,
+                      onTap: widget.onNavigateToBreak,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -164,8 +223,10 @@ class HomeDashboardScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const SoftFocusScreen(
-                        taskTitle: 'Poner un vaso de agua cerca',
+                      builder: (context) => SoftFocusScreen(
+                        taskId: _quickTaskId,
+                        taskTitle: _quickTaskTitle,
+                        microSteps: _quickTaskSteps,
                       ),
                     ),
                   );
@@ -177,19 +238,26 @@ class HomeDashboardScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Mis micro-tareas',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.textPrimary,
-                              ),
+                        Expanded(
+                          child: Text(
+                            'Mis micro-tareas',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.textPrimary,
+                                ),
+                          ),
                         ),
-                        Text(
-                          '2 pendientes',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            '$_pendientesCount pendientes',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
                         ),
                       ],
                     ),
@@ -213,7 +281,7 @@ class HomeDashboardScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Poner un vaso de agua cerca',
+                            _quickTaskTitle,
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: AppTheme.textPrimary,

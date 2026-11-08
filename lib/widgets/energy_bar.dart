@@ -18,11 +18,6 @@ class EnergyDopamineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // [INYECCIÓN DE DATOS - SQLite / FastAPI]:
-    // Reemplazar energyLevel por el valor cargado de:
-    //   final usuario = await DBService.instance.getUsuario();
-    //   usuario.energiaNivel;
-
     return DopaCard(
       backgroundColor: AppTheme.pastelPink,
       padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 16.0),
@@ -33,13 +28,17 @@ class EnergyDopamineCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '¿Cómo está tu energía?',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.textPrimary,
-                      fontWeight: FontWeight.w800,
-                    ),
+              Expanded(
+                child: Text(
+                  '¿Cómo está tu energía?',
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 emoji,
                 style: const TextStyle(fontSize: 26),

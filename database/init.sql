@@ -157,8 +157,8 @@ CREATE INDEX IF NOT EXISTS idx_panelprincipal_usuario_fecha ON panelprincipal(id
 -- Nota: El hash corresponde a la contraseña de prueba "Dopa1234!" en formato bcrypt
 INSERT INTO usuario (id, nombre, correo, contrasenahash, puntos, nivel)
 VALUES
-    (1, 'Fred', 'fred@dopa.app', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 32, 1),
-    (2, 'Paula', 'paula@dopa.app', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 55, 2)
+    (1, 'Fred', 'fred@dopa.app', '$2b$12$J7hjOFNxDH8USkT1eSgAYe63Q9TXSezmvtGs0R5C1QL1U5eK0S7RW', 32, 1),
+    (2, 'Paula', 'paula@dopa.app', '$2b$12$J7hjOFNxDH8USkT1eSgAYe63Q9TXSezmvtGs0R5C1QL1U5eK0S7RW', 55, 2)
 ON CONFLICT (correo) DO NOTHING;
 
 SELECT setval('usuario_id_seq', (SELECT COALESCE(MAX(id), 1) FROM usuario));

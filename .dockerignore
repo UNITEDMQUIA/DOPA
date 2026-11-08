@@ -1,8 +1,5 @@
+# Flutter / Dart
 .dart_tool/
-.git/
-.gitignore
-.idea/
-.vscode/
 build/
 android/
 ios/
@@ -10,5 +7,23 @@ linux/
 macos/
 windows/
 test/
+
+# Python / FastAPI / QA
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Git / IDEs / Docs
+.git/
+.gitignore
+.idea/
+.vscode/
 *.iml
 *.log
+*.pdf
